@@ -15,6 +15,7 @@ provider "aws" {
 resource "aws_security_group" "rds_sg" {
   name_prefix = "rds-sg-"
   description = "Security group para RDS"
+  vpc_id      = aws_vpc.rds_vpc.id
   
   ingress {
     from_port   = 3306
