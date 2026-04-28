@@ -1,27 +1,15 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 provider "aws" {
   region = "us-west-1"
 }
 
-# Security Group para RDS
-resource "aws_security_group" "rds_sg" {
-  name_prefix = "rds-sg-"
-  description = "Security group para RDS"
-  vpc_id      = aws_vpc.rds_vpc.id
-  
+resource "aws_security_group" "db_sg" {
+  name = "rds-test-sg"
+
   ingress {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] # SOLO testing
   }
 
   egress {
@@ -30,93 +18,27 @@ resource "aws_security_group" "rds_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "rds-security-group"
-  }
 }
 
-# Subnet Group para RDS
-resource "aws_db_subnet_group" "rds_subnet_group" {
-  name       = "rds-subnet-group"
-  subnet_ids = aws_subnet.rds_subnets[*].id
+resource "aws_db_instance" "test_db" {
+  identifier        = "test-db-gha"
+  engine            = "postgres"
+  instance_class    = "db.t3.micro"
+  allocated_storage = 20
 
-  tags = {
-    Name = "RDS Subnet Group"
-  }
+  username = "postgres"
+  password = "MySecurePass123!"
+
+  publicly_accessible = true
+  skip_final_snapshot = true
+
+  vpc_security_group_ids = [aws_security_group.db_sg.id]
 }
 
-# VPC para RDS
-resource "aws_vpc" "rds_vpc" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = {
-    Name = "rds-vpc"
-  }
+output "db_endpoint" {
+  value = aws_db_instance.test_db.address
 }
 
-# Internet Gateway
-resource "aws_internet_gateway" "rds_igw" {
-  vpc_id = aws_vpc.rds_vpc.id
-
-  tags = {
-    Name = "rds-igw"
-  }
-}
-
-# Route Table
-resource "aws_route_table" "rds_rt" {
-  vpc_id = aws_vpc.rds_vpc.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.rds_igw.id
-  }
-
-  tags = {
-    Name = "rds-route-table"
-  }
-}
-
-# Subnets para RDS
-resource "aws_subnet" "rds_subnets" {
-  count             = 2
-  vpc_id            = aws_vpc.rds_vpc.id
-  cidr_block        = "10.0.${count.index}.0/24"
-  availability_zone = element(["us-west-1a", "us-west-1c"], count.index)
-
-  tags = {
-    Name = "rds-subnet-${count.index}"
-  }
-}
-
-# Route Table Association
-resource "aws_route_table_association" "rds_rta" {
-  count          = 2
-  subnet_id      = aws_subnet.rds_subnets[count.index].id
-  route_table_id = aws_route_table.rds_rt.id
-}
-
-# Instancia RDS PostgreSQL
-resource "aws_db_instance" "rds_postgresql" {
-  identifier             = "postgresql-instance"
-  engine                 = "postgres"
-  engine_version         = "15.4"
-  instance_class         = "db.t3.micro"
-  allocated_storage      = 20
-  storage_type           = "gp2"
-  db_name                = var.db_name
-  username               = var.db_username
-  password               = var.db_password
-  db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.rds_sg.id]
-  publicly_accessible    = true
-  skip_final_snapshot    = true
-  parameter_group_name   = "default.postgres15"
-
-  tags = {
-    Name = "PostgreSQL-RDS-Instance"
-  }
+output "db_port" {
+  value = aws_db_instance.test_db.port
 }

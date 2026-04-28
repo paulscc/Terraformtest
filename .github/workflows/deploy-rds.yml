@@ -1,104 +1,35 @@
-name: Deploy RDS and Test Connection
+name: Test RDS Connection
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
-env:
-  AWS_REGION: us-west-1
-  TF_VERSION: 1.5.0
 
 jobs:
-  deploy-and-test:
+  test-db:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Format Check
-        run: terraform fmt -check
-        continue-on-error: true
-
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan -var="db_password=${{ secrets.DB_PASSWORD }}"
-        env:
-          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
-        env:
-          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
-
-      - name: Get RDS Endpoint
-        id: rds_info
-        run: |
-          RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
-          RDS_USERNAME=$(terraform output -raw rds_username)
-          RDS_DB_NAME=$(terraform output -raw rds_db_name)
-          
-          # Extraer solo el host (sin el puerto)
-          RDS_HOST=$(echo $RDS_ENDPOINT | cut -d':' -f1)
-          RDS_PORT=$(echo $RDS_ENDPOINT | cut -d':' -f2)
-          
-          echo "rds_host=$RDS_HOST" >> $GITHUB_OUTPUT
-          echo "rds_port=$RDS_PORT" >> $GITHUB_OUTPUT
-          echo "rds_username=$RDS_USERNAME" >> $GITHUB_OUTPUT
-          echo "rds_db_name=$RDS_DB_NAME" >> $GITHUB_OUTPUT
-          
-          echo "RDS Host: $RDS_HOST"
-          echo "RDS Port: $RDS_PORT"
-          echo "RDS Username: $RDS_USERNAME"
-          echo "RDS Database: $RDS_DB_NAME"
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
       - name: Wait for RDS to be ready
         run: |
-          echo "Esperando 5 minutos para que RDS esté completamente disponible..."
-          sleep 300
+          echo "Esperando a que RDS esté disponible..."
 
-      - name: Test RDS Connection
+          for i in {1..30}; do
+            nc -zv ${{ secrets.DB_HOST }} 5432 && echo "RDS listo" && exit 0
+            echo "Intento $i: aún no disponible..."
+            sleep 10
+          done
+
+          echo "RDS no respondió a tiempo"
+          exit 1
+
+      - name: Test connection
         run: |
-          python test_rds_connection.py \
-            --host "${{ steps.rds_info.outputs.rds_host }}" \
-            --username "${{ steps.rds_info.outputs.rds_username }}" \
-            --password "${{ secrets.DB_PASSWORD }}" \
-            --database "${{ steps.rds_info.outputs.rds_db_name }}" \
-            --port "${{ steps.rds_info.outputs.rds_port }}" \
-            --max-retries 10 \
-            --retry-interval 30
-        env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          echo "Probando conexión..."
 
-      - name: Terraform Destroy (optional - comment out to keep resources)
-        if: always()
-        run: terraform destroy -auto-approve -var="db_password=${{ secrets.DB_PASSWORD }}"
-        env:
-          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql \
+            -h ${{ secrets.DB_HOST }} \
+            -U ${{ secrets.DB_USER }} \
+            -d postgres \
+            -c "SELECT 1;"
