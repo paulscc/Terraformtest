@@ -84,7 +84,7 @@ resource "aws_subnet" "rds_subnets" {
   count             = 2
   vpc_id            = aws_vpc.rds_vpc.id
   cidr_block        = "10.0.${count.index}.0/24"
-  availability_zone = element(["us-west-1a", "us-west-1b"], count.index)
+  availability_zone = element(["us-west-1a", "us-west-1c"], count.index)
 
   tags = {
     Name = "rds-subnet-${count.index}"
