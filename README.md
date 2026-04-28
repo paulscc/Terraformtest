@@ -1,6 +1,6 @@
-# Práctica de Terraform para AWS RDS
+# Práctica de Terraform para AWS RDS PostgreSQL
 
-Este proyecto crea una instancia de base de datos MySQL en AWS RDS en la región `us-west-1` e incluye un script para verificar la conexión.
+Este proyecto crea una instancia de base de datos PostgreSQL en AWS RDS en la región `us-west-1` e incluye un script para verificar la conexión.
 
 ## Requisitos Previos
 
@@ -11,11 +11,11 @@ Este proyecto crea una instancia de base de datos MySQL en AWS RDS en la región
 
 ## Archivos del Proyecto
 
-- `main.tf` - Configuración principal de Terraform para crear RDS MySQL
+- `main.tf` - Configuración principal de Terraform para crear RDS PostgreSQL
 - `variables.tf` - Variables de configuración (nombre BD, usuario, contraseña)
 - `outputs.tf` - Outputs que muestran la información de conexión
-- `test_rds_connection.py` - Script Python para verificar la conexión a RDS
-- `requirements.txt` - Dependencias de Python
+- `test_rds_connection.py` - Script Python para verificar la conexión a RDS PostgreSQL
+- `requirements.txt` - Dependencias de Python (psycopg2-binary)
 - `.github/workflows/deploy-rds.yml` - Workflow de GitHub Actions
 - `terraform.tfvars.example` - Plantilla para variables sensibles
 - `.gitignore` - Archivos ignorados por Git
@@ -145,11 +145,11 @@ El script `test_rds_connection.py` soporta dos modos:
 Ejemplo de uso local con argumentos:
 ```bash
 python test_rds_connection.py \
-  --host "mysql-instance.xxxx.us-west-1.rds.amazonaws.com" \
+  --host "postgresql-instance.xxxx.us-west-1.rds.amazonaws.com" \
   --username "admin" \
   --password "TuContraseña" \
   --database "testdb" \
-  --port 3306
+  --port 5432
 ```
 
 ## Recursos Creados
@@ -158,9 +158,9 @@ python test_rds_connection.py \
 - Internet Gateway
 - Route Table
 - 2 Subnets (us-west-1a, us-west-1b)
-- Security Group para RDS (permite puerto 3306)
+- Security Group para RDS (permite puerto 5432)
 - DB Subnet Group
-- Instancia RDS MySQL 8.0 (db.t3.micro, 20GB)
+- Instancia RDS PostgreSQL 15.4 (db.t3.micro, 20GB)
 
 ## Costos Estimados
 

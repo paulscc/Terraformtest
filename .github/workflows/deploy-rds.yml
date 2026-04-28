@@ -57,11 +57,17 @@ jobs:
           RDS_USERNAME=$(terraform output -raw rds_username)
           RDS_DB_NAME=$(terraform output -raw rds_db_name)
           
-          echo "rds_endpoint=$RDS_ENDPOINT" >> $GITHUB_OUTPUT
+          # Extraer solo el host (sin el puerto)
+          RDS_HOST=$(echo $RDS_ENDPOINT | cut -d':' -f1)
+          RDS_PORT=$(echo $RDS_ENDPOINT | cut -d':' -f2)
+          
+          echo "rds_host=$RDS_HOST" >> $GITHUB_OUTPUT
+          echo "rds_port=$RDS_PORT" >> $GITHUB_OUTPUT
           echo "rds_username=$RDS_USERNAME" >> $GITHUB_OUTPUT
           echo "rds_db_name=$RDS_DB_NAME" >> $GITHUB_OUTPUT
           
-          echo "RDS Endpoint: $RDS_ENDPOINT"
+          echo "RDS Host: $RDS_HOST"
+          echo "RDS Port: $RDS_PORT"
           echo "RDS Username: $RDS_USERNAME"
           echo "RDS Database: $RDS_DB_NAME"
 
@@ -81,11 +87,11 @@ jobs:
       - name: Test RDS Connection
         run: |
           python test_rds_connection.py \
-            --host "${{ steps.rds_info.outputs.rds_endpoint }}" \
+            --host "${{ steps.rds_info.outputs.rds_host }}" \
             --username "${{ steps.rds_info.outputs.rds_username }}" \
             --password "${{ secrets.DB_PASSWORD }}" \
             --database "${{ steps.rds_info.outputs.rds_db_name }}" \
-            --port 3306 \
+            --port "${{ steps.rds_info.outputs.rds_port }}" \
             --max-retries 10 \
             --retry-interval 30
         env:

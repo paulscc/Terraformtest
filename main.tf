@@ -18,8 +18,8 @@ resource "aws_security_group" "rds_sg" {
   vpc_id      = aws_vpc.rds_vpc.id
   
   ingress {
-    from_port   = 3306
-    to_port     = 3306
+    from_port   = 5432
+    to_port     = 5432
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -99,11 +99,11 @@ resource "aws_route_table_association" "rds_rta" {
   route_table_id = aws_route_table.rds_rt.id
 }
 
-# Instancia RDS MySQL
-resource "aws_db_instance" "rds_mysql" {
-  identifier             = "mysql-instance"
-  engine                 = "mysql"
-  engine_version         = "8.0"
+# Instancia RDS PostgreSQL
+resource "aws_db_instance" "rds_postgresql" {
+  identifier             = "postgresql-instance"
+  engine                 = "postgres"
+  engine_version         = "15.4"
   instance_class         = "db.t3.micro"
   allocated_storage      = 20
   storage_type           = "gp2"
@@ -114,9 +114,9 @@ resource "aws_db_instance" "rds_mysql" {
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   publicly_accessible    = true
   skip_final_snapshot    = true
-  parameter_group_name   = "default.mysql8.0"
+  parameter_group_name   = "default.postgres15"
 
   tags = {
-    Name = "MySQL-RDS-Instance"
+    Name = "PostgreSQL-RDS-Instance"
   }
 }
