@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client netcat
 
       - name: Wait for RDS to be ready
         run: |
