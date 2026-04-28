@@ -1,0 +1,4 @@
+# Copia este archivo a terraform.tfvars y reemplaza con tus valores
+# NO commits terraform.tfvars al repositorio - contiene información sensible
+
+db_password = "TuContraseñaSegura123"
